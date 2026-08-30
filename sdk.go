@@ -87,6 +87,7 @@ type ImportRequest struct {
 	IdempotencyKey string
 	Filename       string
 	ContentType    string
+	Options        []byte
 	Source         io.Reader
 	MaxBytes       int64
 }
@@ -151,6 +152,22 @@ type ImportBatchResult struct {
 	Receipt            string
 }
 
+// ImportArtifact is the replayable, provider-owned alternative to row-batch
+// import. It is intended for canonical bundles whose integrity and atomicity
+// would be lost if the engine decoded them as CSV rows.
+type ImportArtifact struct {
+	Scope                 Scope
+	ObjectKey, JobID      string
+	Filename, ContentType string
+	Options               []byte
+	Content               io.Reader
+}
+
+type ImportArtifactResult struct {
+	Records int
+	Receipt string
+}
+
 type ExportPageRequest struct {
 	Scope             Scope
 	ObjectKey         string
@@ -184,6 +201,26 @@ type ExportPlan struct {
 	Filename    string
 	ContentType string
 	ExpiresAt   time.Time
+}
+
+// ExportArtifactRequest asks a provider to produce one canonical artifact.
+// The Data Exchange engine remains responsible for durable storage, leases,
+// retries, artifact identity and lifecycle.
+type ExportArtifactRequest struct {
+	Scope       Scope
+	ObjectKey   string
+	ReferenceID string
+	Options     []byte
+	JobID       string
+	CreatedAt   time.Time
+}
+
+type ExportArtifact struct {
+	Filename    string
+	ContentType string
+	ExpiresAt   time.Time
+	Content     io.ReadCloser
+	Records     int
 }
 
 // ExportCompletion is delivered after all result chunks have a stable
