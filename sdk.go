@@ -66,13 +66,17 @@ type Job struct {
 	ID, Provider, Operation, Status string
 	WorkspaceID, ObjectKey          string
 	ActorID, RoleKey                string
-	Checkpoint, Total               int
-	Cursor                          string
-	ResultChunks                    int
-	FencingToken                    int64
-	LeaseOwner                      string
-	ArtifactID, ErrorCode           string
-	CreatedAt, UpdatedAt            time.Time
+	// Options is the immutable provider-owned request payload. It is returned
+	// only through the owning Binding so the application can project and
+	// authorize its own job without duplicating queue state.
+	Options               []byte
+	Checkpoint, Total     int
+	Cursor                string
+	ResultChunks          int
+	FencingToken          int64
+	LeaseOwner            string
+	ArtifactID, ErrorCode string
+	CreatedAt, UpdatedAt  time.Time
 }
 
 type ImportRequest struct {
@@ -102,6 +106,7 @@ type JobRequest struct {
 type Artifact struct {
 	ID, Filename, ContentType, SHA256 string
 	Size                              int64
+	ExpiresAt                         time.Time
 	Content                           io.ReadCloser
 }
 
@@ -143,16 +148,47 @@ type ImportBatchResult struct {
 }
 
 type ExportPageRequest struct {
-	Scope     Scope
-	ObjectKey string
-	Options   []byte
-	Cursor    string
-	PageSize  int
-	JobID     string
+	Scope             Scope
+	ObjectKey         string
+	Options           []byte
+	Cursor            string
+	PageSize          int
+	JobID             string
+	ArtifactExpiresAt time.Time
 }
 type ExportPage struct {
 	Columns    []string
 	Rows       [][]string
 	NextCursor string
 	Total      int
+}
+
+// ExportPlan fixes artifact identity before the first page is read. Providers
+// may choose a governed filename and expiry; the engine supplies safe defaults
+// when the optional planning capability is not implemented.
+type ExportPlanRequest struct {
+	Scope     Scope
+	ObjectKey string
+	Options   []byte
+	JobID     string
+	CreatedAt time.Time
+}
+
+type ExportPlan struct {
+	Filename    string
+	ContentType string
+	ExpiresAt   time.Time
+}
+
+// ExportCompletion is delivered after all result chunks have a stable
+// identity and before the job becomes completed. Provider finalization must be
+// replay-safe because a lost lease or failed terminal transition can retry it.
+type ExportCompletion struct {
+	Scope        Scope
+	ObjectKey    string
+	Options      []byte
+	JobID        string
+	Artifact     Artifact
+	Rows         int
+	ResultChunks int
 }

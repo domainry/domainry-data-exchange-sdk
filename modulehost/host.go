@@ -37,3 +37,16 @@ type ImportProvider interface {
 type ExportProvider interface {
 	ReadExportPage(context.Context, dataexchange.ExportPageRequest) (dataexchange.ExportPage, error)
 }
+
+// ExportPlanningProvider is an optional capability for providers that own
+// governed artifact naming or expiry semantics.
+type ExportPlanningProvider interface {
+	PlanExport(context.Context, dataexchange.ExportPlanRequest) (dataexchange.ExportPlan, error)
+}
+
+// ExportCompletionProvider is an optional capability for replay-safe business
+// projection and audit finalization. The Data Exchange engine remains the only
+// owner of file content and artifact persistence.
+type ExportCompletionProvider interface {
+	CompleteExport(context.Context, dataexchange.ExportCompletion) error
+}
