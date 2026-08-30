@@ -66,6 +66,7 @@ type Job struct {
 	ID, Provider, Operation, Status string
 	WorkspaceID, ObjectKey          string
 	ActorID, RoleKey                string
+	ReferenceID                     string
 	// Options is the immutable provider-owned request payload. It is returned
 	// only through the owning Binding so the application can project and
 	// authorize its own job without duplicating queue state.
@@ -95,7 +96,10 @@ type ExportRequest struct {
 	Provider       string
 	ObjectKey      string
 	IdempotencyKey string
-	Options        []byte
+	// ReferenceID binds the winning owner request (for example, an audit row)
+	// without changing the canonical export condition used for idempotency.
+	ReferenceID string
+	Options     []byte
 }
 
 type JobRequest struct {
@@ -150,6 +154,7 @@ type ImportBatchResult struct {
 type ExportPageRequest struct {
 	Scope             Scope
 	ObjectKey         string
+	ReferenceID       string
 	Options           []byte
 	Cursor            string
 	PageSize          int
@@ -167,11 +172,12 @@ type ExportPage struct {
 // may choose a governed filename and expiry; the engine supplies safe defaults
 // when the optional planning capability is not implemented.
 type ExportPlanRequest struct {
-	Scope     Scope
-	ObjectKey string
-	Options   []byte
-	JobID     string
-	CreatedAt time.Time
+	Scope       Scope
+	ObjectKey   string
+	ReferenceID string
+	Options     []byte
+	JobID       string
+	CreatedAt   time.Time
 }
 
 type ExportPlan struct {
@@ -186,6 +192,7 @@ type ExportPlan struct {
 type ExportCompletion struct {
 	Scope        Scope
 	ObjectKey    string
+	ReferenceID  string
 	Options      []byte
 	JobID        string
 	Artifact     Artifact
