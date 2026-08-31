@@ -15,6 +15,9 @@ const ProtocolVersionV1 = "data-exchange.v1"
 
 var ErrSourceTooLarge = errors.New("Data Exchange source exceeds configured limit")
 var ErrSourceUnreadable = errors.New("Data Exchange source cannot be read")
+var ErrJobNotFound = errors.New("Data Exchange job was not found")
+var ErrArtifactExpired = errors.New("Data Exchange artifact has expired")
+var ErrContentCorrupt = errors.New("Data Exchange durable content failed integrity verification")
 
 type DeploymentMode string
 
@@ -106,6 +109,25 @@ type ExportRequest struct {
 type JobRequest struct {
 	Scope Scope
 	JobID string
+	// Provider and Operation are optional ownership constraints. When supplied,
+	// Job, Cancel, and Download must match them in the same persistence
+	// operation; callers must not authorize a job with a separate read first.
+	Provider  string
+	Operation string
+}
+
+func (r JobRequest) Validate() error {
+	if err := r.Scope.Validate(); err != nil {
+		return err
+	}
+	if strings.TrimSpace(r.JobID) == "" {
+		return fmt.Errorf("Data Exchange job ID is required")
+	}
+	operation := strings.TrimSpace(r.Operation)
+	if operation != "" && operation != "import" && operation != "export" {
+		return fmt.Errorf("Data Exchange job operation is invalid")
+	}
+	return nil
 }
 
 type Artifact struct {
@@ -140,8 +162,13 @@ type Binding interface {
 type ImportBatch struct {
 	Scope                     Scope
 	ObjectKey, JobID, ChunkID string
-	Headers                   []string
-	Rows                      []ImportRow
+	// Attempt is one-based and changes whenever the durable worker retries the
+	// job. Final marks the last validation/apply batch in that pass so providers
+	// can release attempt-scoped state without guessing from chunk IDs.
+	Attempt int
+	Final   bool
+	Headers []string
+	Rows    []ImportRow
 }
 type ImportRow struct {
 	Number int

@@ -65,3 +65,18 @@ type ExportPlanningProvider interface {
 type ExportCompletionProvider interface {
 	CompleteExport(context.Context, dataexchange.ExportCompletion) error
 }
+
+// JobProjector is an optional provider-owned HTTP projection. Data Exchange
+// remains responsible for the shared Job route and ownership lookup, while a
+// Runtime application provider may preserve its public response contract
+// without moving domain-specific payload decoding into the file engine.
+type JobProjector interface {
+	ProjectDataExchangeJob(context.Context, dataexchange.Job, dataexchange.Scope) (any, error)
+}
+
+// JobArtifactOpener is an optional provider-owned authorization hook for the
+// shared download route. Providers with current-policy or audit requirements
+// can enforce them before Data Exchange streams the owned artifact.
+type JobArtifactOpener interface {
+	OpenDataExchangeArtifact(context.Context, dataexchange.Job, dataexchange.Scope) (dataexchange.Artifact, error)
+}
