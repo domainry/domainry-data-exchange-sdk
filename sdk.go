@@ -9,6 +9,8 @@ import (
 	"io"
 	"strings"
 	"time"
+
+	"github.com/domainry/domainry-foundation/modulecapability"
 )
 
 const ProtocolVersionV1 = "data-exchange.v1"
@@ -149,6 +151,7 @@ type Factory interface {
 }
 
 type Binding interface {
+	modulecapability.Binding
 	Descriptor() Descriptor
 	SubmitImport(context.Context, ImportRequest) (Job, bool, error)
 	SubmitExport(context.Context, ExportRequest) (Job, bool, error)

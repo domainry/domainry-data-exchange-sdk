@@ -5,9 +5,11 @@ import (
 
 	dataexchange "github.com/domainry/domainry-data-exchange-sdk"
 	"github.com/domainry/domainry-data-exchange-sdk/modulehost"
+	"github.com/domainry/domainry-foundation/modulecapability"
 )
 
 type Transport interface {
+	modulecapability.Binding
 	Connect(context.Context, dataexchange.ApplicationRef, modulehost.Host) error
 	Descriptor(context.Context, dataexchange.ApplicationRef) (dataexchange.Descriptor, error)
 	SubmitImport(context.Context, dataexchange.ApplicationRef, dataexchange.ImportRequest) (dataexchange.Job, bool, error)
