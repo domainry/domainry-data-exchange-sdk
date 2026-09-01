@@ -1,49 +1,80 @@
 package dataexchange
 
-const DataExchangeHTTPSurfaceContractVersion = "domainry-data-exchange-http-surface-v1"
+import (
+	"strings"
+
+	actioncontract "github.com/domainry/domainry-foundation/action"
+)
+
+const DataExchangeHTTPSurfaceContractVersion = "domainry-data-exchange-http-surface-v2"
+
+const (
+	ActionDataExchangeJobGet      = "data_exchange.jobs.get"
+	ActionDataExchangeJobCancel   = "data_exchange.jobs.cancel"
+	ActionDataExchangeJobDownload = "data_exchange.jobs.download"
+)
 
 type HTTPRouteContract struct {
-	Pattern             string   `json:"pattern"`
-	Exposures           []string `json:"exposures"`
-	Authentication      string   `json:"authentication"`
-	Permission          string   `json:"permission,omitempty"`
-	AnyPermissions      []string `json:"any_permissions,omitempty"`
-	PrincipalOnly       bool     `json:"principal_only,omitempty"`
-	EffectClass         string   `json:"effect_class"`
-	HighRiskPolicy      string   `json:"high_risk_policy"`
-	IdempotencyDecision string   `json:"idempotency_decision"`
-	AuditClass          string   `json:"audit_class"`
+	Action           actioncontract.ActionDefinition `json:"action"`
+	OpenAPIOperation map[string]any                  `json:"openapi_operation"`
+}
+
+func (route HTTPRouteContract) Pattern() string {
+	if route.Action.HTTP == nil {
+		return ""
+	}
+	return route.Action.HTTP.Method + " " + route.Action.HTTP.RouteTemplate
 }
 
 type HTTPSurfaceContract struct {
-	ContractVersion string                    `json:"contract_version"`
-	Owner           string                    `json:"owner"`
-	Name            string                    `json:"name"`
-	Routes          []HTTPRouteContract       `json:"routes"`
-	OpenAPI         map[string]map[string]any `json:"openapi_operations"`
+	ContractVersion string              `json:"contract_version"`
+	Owner           string              `json:"owner"`
+	Name            string              `json:"name"`
+	Routes          []HTTPRouteContract `json:"routes"`
+}
+
+// OpenAPIOperations projects Method+URL keys from the same Action entries used
+// for route mounting. The contract deliberately stores no second URL-keyed
+// OpenAPI inventory.
+func (contract HTTPSurfaceContract) OpenAPIOperations() map[string]map[string]any {
+	operations := make(map[string]map[string]any, len(contract.Routes))
+	for _, route := range contract.Routes {
+		operations[route.Pattern()] = route.OpenAPIOperation
+	}
+	return operations
 }
 
 func DataExchangeHTTPSurfaceContract() HTTPSurfaceContract {
 	routes := []HTTPRouteContract{
-		jobHTTPRoute("GET /data-exchange/jobs/{jobID}", "read", "not_applicable", "owner_read_audit_policy"),
-		jobHTTPRoute("POST /data-exchange/jobs/{jobID}/cancel", "write", "natural_key", "mutation_audit_required"),
-		jobHTTPRoute("GET /data-exchange/jobs/{jobID}/download", "read", "not_applicable", "business_export_download_audit"),
+		jobHTTPRoute(ActionDataExchangeJobGet, "get", "GET /data-exchange/jobs/{jobID}", "Get Data Exchange job", "read", "not_applicable", "owner_read_audit_policy", dataExchangeJobOperation("getDataExchangeJob", "Get an actor-owned Data Exchange job")),
+		jobHTTPRoute(ActionDataExchangeJobCancel, "cancel", "POST /data-exchange/jobs/{jobID}/cancel", "Cancel Data Exchange job", "write", "natural_key", "mutation_audit_required", dataExchangeJobOperation("cancelDataExchangeJob", "Cancel an actor-owned Data Exchange job")),
+		jobHTTPRoute(ActionDataExchangeJobDownload, "download", "GET /data-exchange/jobs/{jobID}/download", "Download Data Exchange job", "read", "not_applicable", "business_export_download_audit", dataExchangeDownloadOperation()),
 	}
 	return HTTPSurfaceContract{
 		ContractVersion: DataExchangeHTTPSurfaceContractVersion, Owner: "data_exchange", Name: "job_management", Routes: routes,
-		OpenAPI: map[string]map[string]any{
-			"GET /data-exchange/jobs/{jobID}":          dataExchangeJobOperation("getDataExchangeJob", "Get an actor-owned Data Exchange job"),
-			"POST /data-exchange/jobs/{jobID}/cancel":  dataExchangeJobOperation("cancelDataExchangeJob", "Cancel an actor-owned Data Exchange job"),
-			"GET /data-exchange/jobs/{jobID}/download": dataExchangeDownloadOperation(),
-		},
 	}
 }
 
-func jobHTTPRoute(pattern, effect, idempotency, audit string) HTTPRouteContract {
-	return HTTPRouteContract{
-		Pattern: pattern, Exposures: []string{"public"}, Authentication: "authenticated", PrincipalOnly: true,
-		EffectClass: effect, HighRiskPolicy: "none", IdempotencyDecision: idempotency, AuditClass: audit,
+func jobHTTPRoute(key, operation, pattern, label, effect, idempotency, audit string, openAPI map[string]any) HTTPRouteContract {
+	method, route, _ := strings.Cut(strings.TrimSpace(pattern), " ")
+	risk := actioncontract.RiskLow
+	if actioncontract.EffectClass(effect) == actioncontract.EffectWrite {
+		risk = actioncontract.RiskMedium
 	}
+	definition, err := actioncontract.NormalizeDefinition(actioncontract.ActionDefinition{
+		Key: key, Owner: "module:data_exchange", SourceKind: "module_surface",
+		CapabilityKey: "data_exchange.jobs", CapabilityLabel: "Data Exchange jobs",
+		OperationKey: operation, OperationLabel: label, Label: label,
+		Exposures:     []actioncontract.Exposure{actioncontract.ExposurePublic},
+		Authorization: actioncontract.Authorization{Strategy: actioncontract.AuthorizationAuthenticatedPrincipal},
+		HTTP:          &actioncontract.HTTPBinding{Method: method, RouteTemplate: route},
+		EffectClass:   actioncontract.EffectClass(effect), RiskLevel: risk,
+		IdempotencyDecision: idempotency, AuditClass: audit, LifecycleStatus: actioncontract.LifecycleActive,
+	})
+	if err != nil {
+		panic("invalid Data Exchange HTTP Action: " + err.Error())
+	}
+	return HTTPRouteContract{Action: definition, OpenAPIOperation: openAPI}
 }
 
 func dataExchangeDownloadOperation() map[string]any {
