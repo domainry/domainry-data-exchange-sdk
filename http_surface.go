@@ -66,7 +66,7 @@ func jobHTTPRoute(key, operation, pattern, label, effect, idempotency, audit str
 		CapabilityKey: "data_exchange.jobs", CapabilityLabel: "Data Exchange jobs",
 		OperationKey: operation, OperationLabel: label, Label: label,
 		Exposures:     []actioncontract.Exposure{actioncontract.ExposurePublic},
-		Authorization: actioncontract.Authorization{Strategy: actioncontract.AuthorizationAuthenticatedPrincipal},
+		Authorization: actioncontract.Authorization{Strategy: actioncontract.AuthorizationAuthenticated},
 		HTTP:          &actioncontract.HTTPBinding{Method: method, RouteTemplate: route},
 		EffectClass:   actioncontract.EffectClass(effect), RiskLevel: risk,
 		IdempotencyDecision: idempotency, AuditClass: audit, LifecycleStatus: actioncontract.LifecycleActive,

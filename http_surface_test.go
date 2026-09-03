@@ -14,7 +14,7 @@ func TestDataExchangeHTTPSurfaceOwnsJobManagementContract(t *testing.T) {
 	}
 	wantKeys := []string{ActionDataExchangeJobGet, ActionDataExchangeJobCancel, ActionDataExchangeJobDownload}
 	for index, route := range contract.Routes {
-		if route.Action.Key != wantKeys[index] || operations[route.Pattern()]["operationId"] == nil || route.Action.Authorization.Strategy != actioncontract.AuthorizationAuthenticatedPrincipal || route.Action.Permission != nil {
+		if route.Action.Key != wantKeys[index] || operations[route.Pattern()]["operationId"] == nil || route.Action.Authorization.Strategy != actioncontract.AuthorizationAuthenticated || route.Action.Permission != nil {
 			t.Fatalf("route %q has incomplete Action/OpenAPI ownership", route.Pattern())
 		}
 	}
