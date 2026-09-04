@@ -6,10 +6,10 @@ import (
 	actioncontract "github.com/domainry/domainry-foundation/action"
 )
 
-func TestDataExchangeHTTPSurfaceOwnsJobManagementContract(t *testing.T) {
-	contract := DataExchangeHTTPSurfaceContract()
+func TestDataExchangeHTTPAdapterOwnsJobManagementContract(t *testing.T) {
+	contract := DataExchangeHTTPAdapterContract()
 	operations := contract.OpenAPIOperations()
-	if contract.Owner != "data_exchange" || contract.ContractVersion != DataExchangeHTTPSurfaceContractVersion || len(contract.Routes) != 3 || len(operations) != 3 {
+	if contract.Owner != "data_exchange" || contract.ContractVersion != DataExchangeHTTPAdapterContractVersion || len(contract.Routes) != 3 || len(operations) != 3 {
 		t.Fatalf("Data Exchange HTTP contract=%+v", contract)
 	}
 	wantKeys := []string{ActionDataExchangeJobGet, ActionDataExchangeJobCancel, ActionDataExchangeJobDownload}

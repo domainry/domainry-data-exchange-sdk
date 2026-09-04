@@ -6,7 +6,7 @@ import (
 	actioncontract "github.com/domainry/domainry-foundation/action"
 )
 
-const DataExchangeHTTPSurfaceContractVersion = "domainry-data-exchange-http-surface-v2"
+const DataExchangeHTTPAdapterContractVersion = "domainry-data-exchange-http-adapter-v1"
 
 const (
 	ActionDataExchangeJobGet      = "data_exchange.jobs.get"
@@ -26,7 +26,7 @@ func (route HTTPRouteContract) Pattern() string {
 	return route.Action.HTTP.Method + " " + route.Action.HTTP.RouteTemplate
 }
 
-type HTTPSurfaceContract struct {
+type HTTPAdapterContract struct {
 	ContractVersion string              `json:"contract_version"`
 	Owner           string              `json:"owner"`
 	Name            string              `json:"name"`
@@ -36,7 +36,7 @@ type HTTPSurfaceContract struct {
 // OpenAPIOperations projects Method+URL keys from the same Action entries used
 // for route mounting. The contract deliberately stores no second URL-keyed
 // OpenAPI inventory.
-func (contract HTTPSurfaceContract) OpenAPIOperations() map[string]map[string]any {
+func (contract HTTPAdapterContract) OpenAPIOperations() map[string]map[string]any {
 	operations := make(map[string]map[string]any, len(contract.Routes))
 	for _, route := range contract.Routes {
 		operations[route.Pattern()] = route.OpenAPIOperation
@@ -44,14 +44,14 @@ func (contract HTTPSurfaceContract) OpenAPIOperations() map[string]map[string]an
 	return operations
 }
 
-func DataExchangeHTTPSurfaceContract() HTTPSurfaceContract {
+func DataExchangeHTTPAdapterContract() HTTPAdapterContract {
 	routes := []HTTPRouteContract{
 		jobHTTPRoute(ActionDataExchangeJobGet, "get", "GET /data-exchange/jobs/{jobID}", "Get Data Exchange job", "read", "not_applicable", "owner_read_audit_policy", dataExchangeJobOperation("getDataExchangeJob", "Get an actor-owned Data Exchange job")),
 		jobHTTPRoute(ActionDataExchangeJobCancel, "cancel", "POST /data-exchange/jobs/{jobID}/cancel", "Cancel Data Exchange job", "write", "natural_key", "mutation_audit_required", dataExchangeJobOperation("cancelDataExchangeJob", "Cancel an actor-owned Data Exchange job")),
 		jobHTTPRoute(ActionDataExchangeJobDownload, "download", "GET /data-exchange/jobs/{jobID}/download", "Download Data Exchange job", "read", "not_applicable", "business_export_download_audit", dataExchangeDownloadOperation()),
 	}
-	return HTTPSurfaceContract{
-		ContractVersion: DataExchangeHTTPSurfaceContractVersion, Owner: "data_exchange", Name: "job_management", Routes: routes,
+	return HTTPAdapterContract{
+		ContractVersion: DataExchangeHTTPAdapterContractVersion, Owner: "data_exchange", Name: "job_management", Routes: routes,
 	}
 }
 
@@ -62,7 +62,7 @@ func jobHTTPRoute(key, operation, pattern, label, effect, idempotency, audit str
 		risk = actioncontract.RiskMedium
 	}
 	definition, err := actioncontract.NormalizeDefinition(actioncontract.ActionDefinition{
-		Key: key, Owner: "module:data_exchange", SourceKind: "module_surface",
+		Key: key, Owner: "module:data_exchange", SourceKind: "module_http",
 		CapabilityKey: "data_exchange.jobs", CapabilityLabel: "Data Exchange jobs",
 		OperationKey: operation, OperationLabel: label, Label: label,
 		Exposures:     []actioncontract.Exposure{actioncontract.ExposurePublic},
