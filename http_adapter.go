@@ -9,6 +9,7 @@ import (
 const DataExchangeHTTPAdapterContractVersion = "domainry-data-exchange-http-adapter-v1"
 
 const (
+	ActionDataExchangeJobList     = "data_exchange.jobs.list"
 	ActionDataExchangeJobGet      = "data_exchange.jobs.get"
 	ActionDataExchangeJobCancel   = "data_exchange.jobs.cancel"
 	ActionDataExchangeJobDownload = "data_exchange.jobs.download"
@@ -46,6 +47,7 @@ func (contract HTTPAdapterContract) OpenAPIOperations() map[string]map[string]an
 
 func DataExchangeHTTPAdapterContract() HTTPAdapterContract {
 	routes := []HTTPRouteContract{
+		jobHTTPRoute(ActionDataExchangeJobList, "list", "GET /data-exchange/jobs", "List Data Exchange jobs", "read", "not_applicable", "owner_read_audit_policy", dataExchangeJobListOperation()),
 		jobHTTPRoute(ActionDataExchangeJobGet, "get", "GET /data-exchange/jobs/{jobID}", "Get Data Exchange job", "read", "not_applicable", "owner_read_audit_policy", dataExchangeJobOperation("getDataExchangeJob", "Get an actor-owned Data Exchange job")),
 		jobHTTPRoute(ActionDataExchangeJobCancel, "cancel", "POST /data-exchange/jobs/{jobID}/cancel", "Cancel Data Exchange job", "write", "natural_key", "mutation_audit_required", dataExchangeJobOperation("cancelDataExchangeJob", "Cancel an actor-owned Data Exchange job")),
 		jobHTTPRoute(ActionDataExchangeJobDownload, "download", "GET /data-exchange/jobs/{jobID}/download", "Download Data Exchange job", "read", "not_applicable", "business_export_download_audit", dataExchangeDownloadOperation()),
@@ -55,8 +57,26 @@ func DataExchangeHTTPAdapterContract() HTTPAdapterContract {
 	}
 }
 
+func dataExchangeJobListOperation() map[string]any {
+	return map[string]any{
+		"operationId": "listDataExchangeJobs", "summary": "List actor-owned Data Exchange jobs", "tags": []string{"Data Exchange"},
+		"security": []map[string]any{{"BearerAuth": []string{}}},
+		"parameters": []map[string]any{
+			{"name": "provider", "in": "query", "required": false, "schema": map[string]any{"type": "string", "minLength": 1}},
+			{"name": "operation", "in": "query", "required": false, "schema": map[string]any{"type": "string", "enum": []string{"import", "export"}}},
+			{"name": "status", "in": "query", "required": false, "schema": map[string]any{"type": "string", "enum": []string{"queued", "running", "completed", "failed", "cancelled"}}},
+			{"name": "limit", "in": "query", "required": false, "schema": map[string]any{"type": "integer", "minimum": 1, "maximum": 200, "default": 50}},
+		},
+		"responses": map[string]any{
+			"200": map[string]any{"description": "Actor-owned Data Exchange jobs", "content": map[string]any{"application/json": map[string]any{"schema": map[string]any{"type": "object", "required": []string{"items"}, "properties": map[string]any{"items": map[string]any{"type": "array", "items": map[string]any{"type": "object", "additionalProperties": true}}}}}}},
+		},
+	}
+}
+
 func jobHTTPRoute(key, operation, pattern, label, effect, idempotency, audit string, openAPI map[string]any) HTTPRouteContract {
 	method, route, _ := strings.Cut(strings.TrimSpace(pattern), " ")
+	separator := strings.LastIndexByte(key, '.')
+	resourceKey := key[:separator]
 	risk := actioncontract.RiskLow
 	if actioncontract.EffectClass(effect) == actioncontract.EffectWrite {
 		risk = actioncontract.RiskMedium
@@ -68,7 +88,11 @@ func jobHTTPRoute(key, operation, pattern, label, effect, idempotency, audit str
 		Exposures:     []actioncontract.Exposure{actioncontract.ExposurePublic},
 		Authorization: actioncontract.Authorization{Strategy: actioncontract.AuthorizationAuthenticated},
 		HTTP:          &actioncontract.HTTPBinding{Method: method, RouteTemplate: route},
-		EffectClass:   actioncontract.EffectClass(effect), RiskLevel: risk,
+		Permission: &actioncontract.PermissionDefinition{
+			Key: key, Owner: "module:data_exchange", ResourceKey: resourceKey, OperationKey: operation,
+			Label: label, Category: "Data Exchange jobs", LifecycleStatus: actioncontract.LifecycleActive,
+		},
+		EffectClass: actioncontract.EffectClass(effect), RiskLevel: risk,
 		IdempotencyDecision: idempotency, AuditClass: audit, LifecycleStatus: actioncontract.LifecycleActive,
 	})
 	if err != nil {

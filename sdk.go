@@ -118,6 +118,35 @@ type JobRequest struct {
 	Operation string
 }
 
+// JobListRequest lists only jobs owned by the authenticated actor in one
+// workspace. Provider, operation, and status are optional server-side filters;
+// Limit is bounded so the HTTP route cannot become an unbounded export path.
+type JobListRequest struct {
+	Scope     Scope
+	Provider  string
+	Operation string
+	Status    string
+	Limit     int
+}
+
+func (r JobListRequest) Validate() error {
+	if err := r.Scope.Validate(); err != nil {
+		return err
+	}
+	operation := strings.TrimSpace(r.Operation)
+	if operation != "" && operation != "import" && operation != "export" {
+		return fmt.Errorf("Data Exchange job operation is invalid")
+	}
+	status := strings.TrimSpace(r.Status)
+	if status != "" && status != "queued" && status != "running" && status != "completed" && status != "failed" && status != "cancelled" {
+		return fmt.Errorf("Data Exchange job status is invalid")
+	}
+	if r.Limit < 0 || r.Limit > 200 {
+		return fmt.Errorf("Data Exchange job list limit is invalid")
+	}
+	return nil
+}
+
 func (r JobRequest) Validate() error {
 	if err := r.Scope.Validate(); err != nil {
 		return err
