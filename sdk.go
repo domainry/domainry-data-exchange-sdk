@@ -17,6 +17,7 @@ const ProtocolVersionV1 = "data-exchange.v1"
 
 var ErrSourceTooLarge = errors.New("Data Exchange source exceeds configured limit")
 var ErrSourceUnreadable = errors.New("Data Exchange source cannot be read")
+var ErrIdempotencyKeyReused = errors.New("Data Exchange idempotency key reused")
 var ErrJobNotFound = errors.New("Data Exchange job was not found")
 var ErrArtifactExpired = errors.New("Data Exchange artifact has expired")
 var ErrContentCorrupt = errors.New("Data Exchange durable content failed integrity verification")

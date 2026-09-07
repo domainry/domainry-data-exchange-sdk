@@ -1,6 +1,17 @@
 package dataexchange
 
-import "testing"
+import (
+	"errors"
+	"fmt"
+	"testing"
+)
+
+func TestIdempotencyKeyReusedErrorSupportsErrorsIs(t *testing.T) {
+	err := fmt.Errorf("submit Data Exchange export: %w", ErrIdempotencyKeyReused)
+	if !errors.Is(err, ErrIdempotencyKeyReused) {
+		t.Fatalf("wrapped error %v does not match ErrIdempotencyKeyReused", err)
+	}
+}
 
 func TestIdentityAndDescriptorContractsFailClosed(t *testing.T) {
 	if (ApplicationRef{}).Validate() == nil || (Scope{}).Validate() == nil || (Descriptor{}).Validate() == nil || (JobRequest{}).Validate() == nil {

@@ -8,6 +8,10 @@ import (
 	"github.com/domainry/domainry-foundation/modulecapability"
 )
 
+// Transport carries the deployment-neutral Data Exchange contract to a SaaS
+// owner. Cross-process implementations must decode an idempotency-key reuse
+// response into dataexchange.ErrIdempotencyKeyReused before returning from
+// SubmitImport or SubmitExport.
 type Transport interface {
 	modulecapability.Binding
 	Connect(context.Context, dataexchange.ApplicationRef, modulehost.Host) error
