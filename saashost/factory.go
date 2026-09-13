@@ -2,6 +2,7 @@ package saashost
 
 import (
 	"context"
+	"encoding/json"
 
 	dataexchange "github.com/domainry/domainry-data-exchange-sdk"
 	"github.com/domainry/domainry-data-exchange-sdk/modulehost"
@@ -22,6 +23,15 @@ type Transport interface {
 	Cancel(context.Context, dataexchange.ApplicationRef, dataexchange.JobRequest) (dataexchange.Job, error)
 	Download(context.Context, dataexchange.ApplicationRef, dataexchange.JobRequest) (dataexchange.Artifact, error)
 	Close(context.Context, dataexchange.ApplicationRef) error
+}
+
+// SubjectLifecycleTransport is the authenticated owner-to-owner transport. A
+// deployment must provide it before it can participate in account erasure.
+type SubjectLifecycleTransport interface {
+	PreviewSubject(context.Context, dataexchange.ApplicationRef, string, string) (json.RawMessage, error)
+	ExportSubject(context.Context, dataexchange.ApplicationRef, string, string) (json.RawMessage, error)
+	PrepareSubjectErasure(context.Context, dataexchange.ApplicationRef, dataexchange.SubjectErasureRequest) (json.RawMessage, error)
+	ErasePreparedSubject(context.Context, dataexchange.ApplicationRef, dataexchange.SubjectErasureRequest, json.RawMessage) (json.RawMessage, error)
 }
 
 type Factory interface {

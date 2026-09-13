@@ -4,6 +4,7 @@ package dataexchange
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -190,6 +191,26 @@ type Binding interface {
 	Download(context.Context, JobRequest) (Artifact, error)
 	Start(context.Context, WorkerConfig) <-chan struct{}
 	Close(context.Context) error
+}
+
+// SubjectLifecycleBinding is a privileged owner capability. It is deliberately
+// separate from user job management and is never mounted on the job HTTP routes.
+type SubjectLifecycleBinding interface {
+	SubjectLifecycle() SubjectLifecycle
+}
+
+type SubjectErasureRequest struct {
+	WorkspaceID string          `json:"workspace_id"`
+	SubjectID   string          `json:"subject_id"`
+	RequestID   string          `json:"request_id"`
+	LegalHolds  json.RawMessage `json:"legal_holds,omitempty"`
+}
+
+type SubjectLifecycle interface {
+	PreviewSubject(context.Context, string, string) (json.RawMessage, error)
+	ExportSubject(context.Context, string, string) (json.RawMessage, error)
+	PrepareSubjectErasure(context.Context, SubjectErasureRequest) (json.RawMessage, error)
+	ErasePreparedSubject(context.Context, SubjectErasureRequest, json.RawMessage) (json.RawMessage, error)
 }
 
 type ImportBatch struct {
