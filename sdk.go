@@ -193,6 +193,13 @@ type Binding interface {
 	Close(context.Context) error
 }
 
+// InlineExportBinding is an optional owner-to-owner fast path. It claims one
+// exact submitted export and runs the same durable processing pipeline used by
+// the worker. A returned non-completed job remains available to the worker.
+type InlineExportBinding interface {
+	MaterializeExport(context.Context, JobRequest) (Job, error)
+}
+
 // SubjectLifecycleBinding is a privileged owner capability. It is deliberately
 // separate from user job management and is never mounted on the job HTTP routes.
 type SubjectLifecycleBinding interface {
