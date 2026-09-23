@@ -5,6 +5,7 @@ import (
 	"database/sql"
 
 	dataexchange "github.com/domainry/domainry-data-exchange-sdk"
+	sharedartifact "github.com/domainry/domainry-foundation/artifact"
 )
 
 type Host interface {
@@ -15,6 +16,7 @@ type Host interface {
 type ModuleHost interface {
 	Host
 	Database() *sql.DB
+	ArtifactStore() sharedartifact.Store
 	Migrations() MigrationRegistrar
 	WorkspaceContext(context.Context, string, string) context.Context
 }

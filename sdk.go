@@ -10,8 +10,6 @@ import (
 	"io"
 	"strings"
 	"time"
-
-	"github.com/domainry/domainry-foundation/modulecapability"
 )
 
 const ProtocolVersionV1 = "data-exchange.v1"
@@ -182,7 +180,6 @@ type Factory interface {
 }
 
 type Binding interface {
-	modulecapability.Binding
 	Descriptor() Descriptor
 	SubmitImport(context.Context, ImportRequest) (Job, bool, error)
 	SubmitExport(context.Context, ExportRequest) (Job, bool, error)
@@ -204,6 +201,13 @@ type InlineExportBinding interface {
 // separate from user job management and is never mounted on the job HTTP routes.
 type SubjectLifecycleBinding interface {
 	SubjectLifecycle() SubjectLifecycle
+}
+
+// SubjectLifecyclePersistenceBinding is implemented by the embedded module.
+// The host calls it only after the shared Lifecycle subject tables are ready;
+// remote SaaS bindings keep their own server-side composition boundary.
+type SubjectLifecyclePersistenceBinding interface {
+	BindSubjectLifecyclePersistence() error
 }
 
 type SubjectErasureRequest struct {
