@@ -68,10 +68,11 @@ func (s Scope) Validate() error {
 }
 
 type Job struct {
-	ID, Provider, Operation, Status string
-	WorkspaceID, ObjectKey          string
-	ActorID, RoleKey                string
-	ReferenceID                     string
+	ID                                 int64
+	JobID, Provider, Operation, Status string
+	WorkspaceID, ObjectKey             string
+	ActorID, RoleKey                   string
+	ReferenceID                        string
 	// Options is the immutable provider-owned request payload. It is returned
 	// only through the owning Binding so the application can project and
 	// authorize its own job without duplicating queue state.
@@ -162,10 +163,14 @@ func (r JobRequest) Validate() error {
 }
 
 type Artifact struct {
-	ID, Filename, ContentType, SHA256 string
-	Size                              int64
-	ExpiresAt                         time.Time
-	Content                           io.ReadCloser
+	ID          int64
+	ArtifactID  string
+	Filename    string
+	ContentType string
+	SHA256      string
+	Size        int64
+	ExpiresAt   time.Time
+	Content     io.ReadCloser
 }
 
 type WorkerConfig struct {
