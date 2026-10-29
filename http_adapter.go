@@ -61,8 +61,10 @@ func jobHTTPRoute(key, operation, pattern, label, effect, idempotency, audit str
 		Authorization: actioncontract.Authorization{Strategy: actioncontract.AuthorizationAuthenticated},
 		HTTP:          &actioncontract.HTTPBinding{Method: method, RouteTemplate: route},
 		Permission: &actioncontract.PermissionDefinition{
-			Key: key, Owner: "module:data_exchange", ResourceKey: resourceKey, OperationKey: operation,
-			Label: label, Category: "Data Exchange jobs", LifecycleStatus: actioncontract.LifecycleActive,
+			Key: key, Owner: "module:data_exchange", ModuleKey: "data_exchange", GroupKey: "data_exchange.jobs",
+			ResourceKey: resourceKey, OperationKey: operation, Label: label, Category: "Data Exchange jobs",
+			GrantMode: actioncontract.PermissionGrantInternal, ScopeKind: actioncontract.PermissionScopeNone,
+			DefaultLocale: "en", I18n: dataExchangePermissionText(operation, label), LifecycleStatus: actioncontract.LifecycleActive,
 		},
 		EffectClass: actioncontract.EffectClass(effect), RiskLevel: risk,
 		IdempotencyDecision: idempotency, AuditClass: audit, LifecycleStatus: actioncontract.LifecycleActive,
@@ -71,4 +73,13 @@ func jobHTTPRoute(key, operation, pattern, label, effect, idempotency, audit str
 		panic("invalid Data Exchange HTTP Action: " + err.Error())
 	}
 	return HTTPRouteContract{Action: definition}
+}
+
+func dataExchangePermissionText(operation, englishLabel string) actioncontract.PermissionLocalizedText {
+	operationEnglish := map[string]string{"list": "List", "get": "View details", "cancel": "Cancel", "download": "Download result"}[operation]
+	operationChinese := map[string]string{"list": "查看列表", "get": "查看详情", "cancel": "取消", "download": "下载结果"}[operation]
+	return actioncontract.PermissionLocalizedText{
+		"en":    {ModuleLabel: "Data exchange", GroupLabel: "Exchange jobs", ResourceLabel: "Data exchange jobs", OperationLabel: operationEnglish, Label: englishLabel, Description: "Provides access to Data exchange jobs for the “" + operationEnglish + "” operation."},
+		"zh-CN": {ModuleLabel: "数据交换", GroupLabel: "交换任务", ResourceLabel: "数据交换任务", OperationLabel: operationChinese, Label: "数据交换任务 · " + operationChinese, Description: "允许对数据交换任务执行“" + operationChinese + "”操作。"},
+	}
 }
